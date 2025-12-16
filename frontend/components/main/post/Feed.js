@@ -6,7 +6,7 @@ import { Divider, Snackbar } from 'react-native-paper'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import { deletePost, fetchFeedPosts, reload, sendNotification } from '../../../redux/actions/index'
-import { container, utils } from '../../styles'
+import { container, text, utils } from '../../styles'
 import Post from './Post'
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
@@ -51,7 +51,17 @@ function Feed(props) {
 
 
     if (posts.length == 0) {
-        return (<View />)
+        return (
+            <View style={[container.container, container.center, { padding: 20 }]}>
+                <Text style={[text.bold, text.large, { marginBottom: 10 }]}>Welcome to Instagram!</Text>
+                <Text style={[text.grey, text.center]}>
+                    Follow people to see their posts here.
+                </Text>
+                <Text style={[text.grey, text.center, { marginTop: 10 }]}>
+                    Go to Search tab to find people to follow!
+                </Text>
+            </View>
+        )
     }
 
     if (sheetRef.current !== null) {

@@ -210,6 +210,13 @@ export function fetchUsersFollowingPosts(uid) {
         const q = query(postsRef, orderBy("creation", "asc"));
 
         getDocs(q).then((snapshot) => {
+            // Check if user has any posts
+            if (snapshot.docs.length === 0) {
+                // User has no posts, dispatch empty array
+                dispatch({ type: USERS_POSTS_STATE_CHANGE, posts: [], uid });
+                return;
+            }
+
             const uid = snapshot.docs[0].ref.path.split('/')[1];
             const user = getState().usersState.users.find(el => el.uid === uid);
 

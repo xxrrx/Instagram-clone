@@ -7,7 +7,7 @@ import { Video } from 'expo-av';
 
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Dimensions, Image, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, Modal, Text, TouchableOpacity, View } from 'react-native';
 // import BottomSheet from 'react-native-bottomsheet-reanimated'; // Incompatible with Expo SDK 51
 import { Divider, Snackbar } from 'react-native-paper';
 // import ParsedText from 'react-native-parsed-text'; // Incompatible with Expo SDK 51
@@ -18,8 +18,9 @@ import { container, text, utils } from '../../styles';
 import { timeDifference } from '../../utils';
 import CachedImage from '../random/CachedImage';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp, increment } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import ImageView from 'react-native-image-viewing';
 
 
 
@@ -37,6 +38,7 @@ function Post(props) {
     const [isValid, setIsValid] = useState(true);
     const [exists, setExists] = useState(false);
     const [loaded, setLoaded] = useState(false);
+    const [imageViewVisible, setImageViewVisible] = useState(false);
 
     const isFocused = useIsFocused();
     useEffect(() => {
@@ -53,9 +55,11 @@ function Post(props) {
                     }
                 })
 
-            getDoc(doc(getFirestore(), "posts", props.route.params.user, "userPosts", props.route.params.item))
-                .then((snapshot) => {
-                    if (snapshot.exists) {
+            // Listen to post changes for real-time updates
+            const unsubscribePost = onSnapshot(
+                doc(getFirestore(), "posts", props.route.params.user, "userPosts", props.route.params.item),
+                (snapshot) => {
+                    if (snapshot.exists()) {
                         let post = snapshot.data();
                         post.id = snapshot.id;
 
@@ -63,29 +67,58 @@ function Post(props) {
                         setLoaded(true)
                         setExists(true)
                     }
-                })
-            onSnapshot(doc(getFirestore(), "posts", props.route.params.user, "userPosts", props.route.params.item, "likes", getAuth().currentUser.uid), (snapshot) => {
-                let currentUserLike = false;
-                if (snapshot.exists()) {
-                    currentUserLike = true;
                 }
-                setCurrentUserLike(currentUserLike)
-            })
+            );
+
+            const unsubscribeLike = onSnapshot(
+                doc(getFirestore(), "posts", props.route.params.user, "userPosts", props.route.params.item, "likes", getAuth().currentUser.uid),
+                (snapshot) => {
+                    let currentUserLike = false;
+                    if (snapshot.exists()) {
+                        currentUserLike = true;
+                    }
+                    setCurrentUserLike(currentUserLike)
+                }
+            );
+
+            return () => {
+                unsubscribePost();
+                unsubscribeLike();
+            };
 
         }
         else {
-            onSnapshot(doc(getFirestore(), "posts", props.route.params.user.uid, "userPosts", props.route.params.item.id, "likes", getAuth().currentUser.uid), (snapshot) => {
-                let currentUserLike = false;
-                if (snapshot.exists()) {
-                    currentUserLike = true;
+            // Listen to post changes for real-time updates
+            const unsubscribePost = onSnapshot(
+                doc(getFirestore(), "posts", props.route.params.user.uid, "userPosts", props.route.params.item.id),
+                (snapshot) => {
+                    if (snapshot.exists()) {
+                        let post = snapshot.data();
+                        post.id = snapshot.id;
+                        setItem(post)
+                    }
                 }
-                setCurrentUserLike(currentUserLike)
-            })
+            );
 
-            setItem(props.route.params.item)
+            const unsubscribeLike = onSnapshot(
+                doc(getFirestore(), "posts", props.route.params.user.uid, "userPosts", props.route.params.item.id, "likes", getAuth().currentUser.uid),
+                (snapshot) => {
+                    let currentUserLike = false;
+                    if (snapshot.exists()) {
+                        currentUserLike = true;
+                    }
+                    setCurrentUserLike(currentUserLike)
+                }
+            );
+
             setUser(props.route.params.user)
             setLoaded(true)
             setExists(true)
+
+            return () => {
+                unsubscribePost();
+                unsubscribeLike();
+            };
         }
 
     }, [props.route.params.notification, props.route.params.item])
@@ -114,18 +147,25 @@ function Post(props) {
     }
 
     const onLikePress = (userId, postId, item) => {
-        item.likesCount += 1;
         setCurrentUserLike(true)
+        // Add like document
         setDoc(doc(getFirestore(), "posts", userId, "userPosts", postId, "likes", getAuth().currentUser.uid), {})
-            .then()
+        // Increment likesCount
+        updateDoc(doc(getFirestore(), "posts", userId, "userPosts", postId), {
+            likesCount: increment(1)
+        }).catch(error => console.error("Error incrementing likes:", error))
+
         props.sendNotification(user.notificationToken, "New Like", `${props.currentUser.name} liked your post`, { type: 0, postId, user: getAuth().currentUser.uid })
-
     }
-    const onDislikePress = (userId, postId, item) => {
-        item.likesCount -= 1;
 
+    const onDislikePress = (userId, postId, item) => {
         setCurrentUserLike(false)
+        // Remove like document
         deleteDoc(doc(getFirestore(), "posts", userId, "userPosts", postId, "likes", getAuth().currentUser.uid))
+        // Decrement likesCount
+        updateDoc(doc(getFirestore(), "posts", userId, "userPosts", postId), {
+            likesCount: increment(-1)
+        }).catch(error => console.error("Error decrementing likes:", error))
     }
     if (!exists && loaded) {
         return (
@@ -207,14 +247,8 @@ function Post(props) {
 
                     <TouchableOpacity
                         style={[{ marginLeft: 'auto' }]}
-
-                        onPress={() => {
-                            if (props.route.params.feed) {
-                                props.route.params.setModalShow({ visible: true, item })
-                            } else {
-                                setModalShow({ visible: true, item })
-                            }
-                        }}>
+                        onPress={() => setModalShow({ visible: true, item })}
+                    >
                         <Feather
                             name="more-vertical" size={20} color="black" />
                     </TouchableOpacity>
@@ -297,11 +331,13 @@ function Post(props) {
 
                     :
 
-                    <CachedImage
-                        cacheKey={item.id}
-                        style={container.image}
-                        source={{ uri: item.downloadURL }}
-                    />
+                    <TouchableOpacity activeOpacity={0.9} onPress={() => setImageViewVisible(true)}>
+                        <CachedImage
+                            cacheKey={item.id}
+                            style={container.image}
+                            source={{ uri: item.downloadURL }}
+                        />
+                    </TouchableOpacity>
                 }
 
                 <View style={[utils.padding10, container.horizontal]}>
@@ -322,7 +358,7 @@ function Post(props) {
                 </View>
                 <View style={[container.container, utils.padding10Sides]}>
                     <Text style={[text.bold, text.medium]}>
-                        {item.likesCount} likes
+                        {item.likesCount || 0} likes
                     </Text>
                     <Text style={[utils.margin15Right, utils.margin5Bottom]}>
                         <Text style={[text.bold]}
@@ -336,7 +372,7 @@ function Post(props) {
                     </Text>
                     <Text
                         style={[text.grey, utils.margin5Bottom]} onPress={() => props.navigation.navigate('Comment', { postId: item.id, uid: user.uid, user })}>
-                        View all {item.commentsCount} Comments
+                        View all {item.commentsCount || 0} Comments
                     </Text>
                     <Text
                         style={[text.grey, text.small, utils.margin5Bottom]}>
@@ -345,65 +381,69 @@ function Post(props) {
                 </View>
             </View>
 
-            {/* BottomSheet incompatible with SDK 51
-            <BottomSheet
-                bottomSheerColor="#FFFFFF"
-                ref={setSheetRef}
-                initialPosition={0} //200, 300
-                snapPoints={[300, 0]}
-                isBackDrop={true}
-                isBackDropDismissByPress={true}
-                isRoundBorderWithTipHeader={true}
-                backDropColor="black"
-                isModal
-                containerStyle={{ backgroundColor: "white" }}
-                tipStyle={{ backgroundColor: "white" }}
-                headerStyle={{ backgroundColor: "white", flex: 1 }}
-                bodyStyle={{ backgroundColor: "white", flex: 1, borderRadius: 20 }}
-                body={
-
-                    <View>
-
+            <Modal
+                visible={modalShow.visible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setModalShow({ visible: false, item: null })}
+            >
+                <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+                    activeOpacity={1}
+                    onPress={() => setModalShow({ visible: false, item: null })}
+                >
+                    <View style={{ backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 20 }}>
                         {modalShow.item != null ?
                             <View>
-                                <TouchableOpacity style={{ padding: 20 }}
+                                <TouchableOpacity
+                                    style={{ padding: 20 }}
                                     onPress={() => {
-                                        props.navigation.navigate("ProfileOther", { uid: modalShow.item.user.uid, username: undefined });
+                                        props.navigation.navigate("ProfileOther", { uid: user.uid, username: undefined });
                                         setModalShow({ visible: false, item: null });
-                                    }}>
-                                    <Text >Profile</Text>
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 16 }}>View Profile</Text>
                                 </TouchableOpacity>
                                 <Divider />
-                                {props.route.params.user.uid == getAuth().currentUser.uid ?
-                                    <TouchableOpacity style={{ padding: 20 }}
+                                {user.uid == getAuth().currentUser.uid ?
+                                    <TouchableOpacity
+                                        style={{ padding: 20 }}
                                         onPress={() => {
                                             props.deletePost(modalShow.item).then(() => {
                                                 props.fetchUserPosts()
                                                 props.navigation.popToTop()
                                             })
                                             setModalShow({ visible: false, item: null });
-                                        }}>
-                                        <Text >Delete</Text>
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 16, color: 'red' }}>Delete Post</Text>
                                     </TouchableOpacity>
                                     : null}
-
                                 <Divider />
-                                <TouchableOpacity style={{ padding: 20 }} onPress={() => setModalShow({ visible: false, item: null })}>
-                                    <Text >Cancel</Text>
+                                <TouchableOpacity
+                                    style={{ padding: 20 }}
+                                    onPress={() => setModalShow({ visible: false, item: null })}
+                                >
+                                    <Text style={{ fontSize: 16 }}>Cancel</Text>
                                 </TouchableOpacity>
                             </View>
                             : null}
-
                     </View>
-                }
-            />
-            */}
+                </TouchableOpacity>
+            </Modal>
             <Snackbar
                 visible={isValid.boolSnack}
                 duration={2000}
                 onDismiss={() => { setIsValid({ boolSnack: false }) }}>
                 {isValid.message}
             </Snackbar>
+
+            <ImageView
+                images={[{ uri: item.downloadURL }]}
+                imageIndex={0}
+                visible={imageViewVisible}
+                onRequestClose={() => setImageViewVisible(false)}
+            />
         </View>
     )
 }
