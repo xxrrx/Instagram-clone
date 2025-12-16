@@ -43,12 +43,21 @@ exports.addFollower = functions.firestore
                 timestamp: admin.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
-                // 2. Update follower count
+                // 2. Update follower count của B (người được follow)
                 return db
                     .collection('users')
                     .doc(context.params.followingId)
                     .update({
                         followersCount: admin.firestore.FieldValue.increment(1)
+                    });
+            })
+            .then(() => {
+                // 3. Update following count của A (người đang follow)
+                return db
+                    .collection('users')
+                    .doc(context.params.userId)
+                    .update({
+                        followingCount: admin.firestore.FieldValue.increment(1)
                     });
             });
     });
@@ -63,12 +72,21 @@ exports.removeFollower = functions.firestore
             .doc(context.params.userId)
             .delete()
             .then(() => {
-                // 2. Update follower count
+                // 2. Update follower count của B (người bị unfollow)
                 return db
                     .collection('users')
                     .doc(context.params.followingId)
                     .update({
                         followersCount: admin.firestore.FieldValue.increment(-1)
+                    });
+            })
+            .then(() => {
+                // 3. Update following count của A (người đang unfollow)
+                return db
+                    .collection('users')
+                    .doc(context.params.userId)
+                    .update({
+                        followingCount: admin.firestore.FieldValue.increment(-1)
                     });
             });
     });

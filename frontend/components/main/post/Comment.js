@@ -11,7 +11,7 @@ import { fetchUsersData, sendNotification } from '../../../redux/actions/index';
 import { container, text, utils } from '../../styles';
 import { timeDifference } from '../../utils';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp, increment } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
@@ -75,10 +75,7 @@ function Comment(props) {
             creation: serverTimestamp()
         }).then(() => {
             setRefresh(true)
-            // Increment commentsCount
-            updateDoc(doc(getFirestore(), 'posts', props.route.params.uid, 'userPosts', props.route.params.postId), {
-                commentsCount: increment(1)
-            }).catch(error => console.error("Error incrementing comments:", error))
+            // Cloud Functions will auto-increment commentsCount
         })
 
         getDoc(doc(getFirestore(), "users", props.route.params.uid))

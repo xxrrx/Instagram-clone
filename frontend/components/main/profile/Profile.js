@@ -23,8 +23,24 @@ function Profile(props) {
     const [loading, setLoading] = useState(true);
     const [following, setFollowing] = useState(false)
 
+    // Fetch following list when uid changes
+    useEffect(() => {
+        props.fetchUserFollowing();
+    }, [props.route.params.uid]);
+
+    // Update button state when following list changes
+    useEffect(() => {
+        if (props.following.indexOf(props.route.params.uid) > -1) {
+            setFollowing(true);
+        } else {
+            setFollowing(false);
+        }
+    }, [props.following, props.route.params.uid]);
+
+    // Fetch user data and posts
     useEffect(() => {
         const { currentUser, posts } = props;
+        let unsubscribeUser = null;
 
         if (props.route.params.uid === getAuth().currentUser.uid) {
             setUser(currentUser)
@@ -32,9 +48,11 @@ function Profile(props) {
             setLoading(false)
         }
         else {
-            getDoc(doc(getFirestore(), "users", props.route.params.uid))
-                .then((snapshot) => {
-                    if (snapshot.exists) {
+            // Listen to user data changes for real-time follower count updates
+            unsubscribeUser = onSnapshot(
+                doc(getFirestore(), "users", props.route.params.uid),
+                (snapshot) => {
+                    if (snapshot.exists()) {
                         props.navigation.setOptions({
                             title: snapshot.data().username,
                         })
@@ -42,8 +60,14 @@ function Profile(props) {
                         setUser({ uid: props.route.params.uid, ...snapshot.data() });
                     }
                     setLoading(false)
+                },
+                (error) => {
+                    // Handle permission errors gracefully (e.g., after logout)
+                    console.log("Listener error:", error.message);
+                    setLoading(false);
+                }
+            );
 
-                })
             getDocs(query(collection(getFirestore(), "posts", props.route.params.uid, "userPosts"), orderBy("creation", "desc")))
                 .then((snapshot) => {
                     let posts = snapshot.docs.map(doc => {
@@ -55,56 +79,40 @@ function Profile(props) {
                 })
         }
 
+        // Cleanup listener on unmount (always runs)
+        return () => {
+            if (unsubscribeUser) {
+                unsubscribeUser();
+            }
+        };
 
-        if (props.following.indexOf(props.route.params.uid) > -1) {
-            setFollowing(true);
-        } else {
-            setFollowing(false);
-        }
-
-    }, [props.route.params.uid, props.following, props.currentUser, props.posts])
+    }, [props.route.params.uid, props.currentUser, props.posts])
 
     const onFollow = () => {
+        setFollowing(true); // Immediate UI feedback
         setDoc(doc(getFirestore(), "following", getAuth().currentUser.uid, "userFollowing", props.route.params.uid), {})
             .then(() => {
                 // Cloud Functions will automatically update followersCount and followingCount
                 props.fetchUserFollowing();
-
-                // Refresh user data to update follower count
-                getDoc(doc(getFirestore(), "users", props.route.params.uid))
-                    .then((snapshot) => {
-                        if (snapshot.exists()) {
-                            setUser(snapshot.data());
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Error refreshing user data:", error);
-                    });
+                // Real-time listener will update user data automatically
             })
             .catch((error) => {
                 console.error("Error following user:", error);
+                setFollowing(false); // Revert on error
             });
         props.sendNotification(user.notificationToken, "New Follower", `${props.currentUser.name} Started following you`, { type: 'profile', user: getAuth().currentUser.uid })
     }
     const onUnfollow = () => {
+        setFollowing(false); // Immediate UI feedback
         deleteDoc(doc(getFirestore(), "following", getAuth().currentUser.uid, "userFollowing", props.route.params.uid))
             .then(() => {
                 // Cloud Functions will automatically update followersCount and followingCount
                 props.fetchUserFollowing();
-
-                // Refresh user data to update follower count
-                getDoc(doc(getFirestore(), "users", props.route.params.uid))
-                    .then((snapshot) => {
-                        if (snapshot.exists()) {
-                            setUser(snapshot.data());
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Error refreshing user data:", error);
-                    });
+                // Real-time listener will update user data automatically
             })
             .catch((error) => {
                 console.error("Error unfollowing user:", error);
+                setFollowing(true); // Revert on error
             });
     }
 

@@ -18,7 +18,7 @@ import { container, text, utils } from '../../styles';
 import { timeDifference } from '../../utils';
 import CachedImage from '../random/CachedImage';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp, increment } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import ImageView from 'react-native-image-viewing';
 
@@ -148,24 +148,16 @@ function Post(props) {
 
     const onLikePress = (userId, postId, item) => {
         setCurrentUserLike(true)
-        // Add like document
+        // Add like document - Cloud Functions will auto-increment likesCount
         setDoc(doc(getFirestore(), "posts", userId, "userPosts", postId, "likes", getAuth().currentUser.uid), {})
-        // Increment likesCount
-        updateDoc(doc(getFirestore(), "posts", userId, "userPosts", postId), {
-            likesCount: increment(1)
-        }).catch(error => console.error("Error incrementing likes:", error))
 
         props.sendNotification(user.notificationToken, "New Like", `${props.currentUser.name} liked your post`, { type: 0, postId, user: getAuth().currentUser.uid })
     }
 
     const onDislikePress = (userId, postId, item) => {
         setCurrentUserLike(false)
-        // Remove like document
+        // Remove like document - Cloud Functions will auto-decrement likesCount
         deleteDoc(doc(getFirestore(), "posts", userId, "userPosts", postId, "likes", getAuth().currentUser.uid))
-        // Decrement likesCount
-        updateDoc(doc(getFirestore(), "posts", userId, "userPosts", postId), {
-            likesCount: increment(-1)
-        }).catch(error => console.error("Error decrementing likes:", error))
     }
     if (!exists && loaded) {
         return (

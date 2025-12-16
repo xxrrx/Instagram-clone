@@ -18,19 +18,28 @@ function FollowersList(props) {
 
     const fetchFollowers = async () => {
         try {
-            const followersRef = collection(
-                getFirestore(),
-                "followers",
-                props.route.params.uid,
-                "userFollowers"
-            );
+            // Use reverse lookup from 'following' collection to find existing followers
+            // This works for old data before Cloud Functions were deployed
+            const db = getFirestore();
+            const followersList = [];
 
-            const snapshot = await getDocs(followersRef);
-            const followersList = snapshot.docs.map(doc => doc.id);
+            // Get all users' following collections
+            const followingSnapshot = await getDocs(collection(db, "following"));
 
-            // Fetch user data
-            for (const uid of followersList) {
-                props.fetchUsersData(uid, false);
+            for (const userDoc of followingSnapshot.docs) {
+                const userId = userDoc.id;
+
+                // Check if this user is following the target user
+                const userFollowingRef = collection(db, "following", userId, "userFollowing");
+                const userFollowingSnapshot = await getDocs(userFollowingRef);
+
+                // Check if target uid exists in this user's following list
+                const isFollowing = userFollowingSnapshot.docs.some(doc => doc.id === props.route.params.uid);
+
+                if (isFollowing) {
+                    followersList.push(userId);
+                    props.fetchUsersData(userId, false);
+                }
             }
 
             setFollowers(followersList);
