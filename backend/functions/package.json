@@ -1,6 +1,6 @@
 {
     "name": "functions",
-    "description": "Cloud Functions for Instagram Clone",
+    "description": "Cloud Functions for MySocial",
     "scripts": {
         "serve": "firebase emulators:start --only functions",
         "shell": "firebase functions:shell",

@@ -59,7 +59,7 @@ export default function AppNavigator() {
                 return { ...baseOptions, headerTitle: 'Search' };
             case 'Feed':
             default:
-                return { ...baseOptions, headerTitle: 'Instagram' };
+                return { ...baseOptions, headerTitle: 'MySocial' };
         }
     };
 

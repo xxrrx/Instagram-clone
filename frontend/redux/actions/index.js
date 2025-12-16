@@ -252,23 +252,37 @@ export function fetchUsersFollowingLikes(uid, postId) {
     })
 }
 
-export function queryUsersByUsername(username) {
+export function queryUsersByUsername(searchText) {
     return ((dispatch, getState) => {
         return new Promise((resolve, reject) => {
-            if (username.length == 0) {
+            if (searchText.length == 0) {
                 resolve([])
+                return;
             }
             const db = getFirestore();
             const usersRef = collection(db, 'users');
-            const q = query(usersRef, where('username', '>=', username), limit(10));
+            const searchLower = searchText.toLowerCase();
 
-            getDocs(q).then((snapshot) => {
+            // Get all users and filter client-side for flexible search
+            // This allows case-insensitive search on both username and name
+            getDocs(query(usersRef, limit(50))).then((snapshot) => {
                 let users = snapshot.docs.map(doc => {
                     const data = doc.data();
                     const id = doc.id;
                     return { id, ...data }
                 });
-                resolve(users);
+
+                // Filter users whose username or name contains the search text
+                const filtered = users.filter(user => {
+                    const username = (user.username || '').toLowerCase();
+                    const name = (user.name || '').toLowerCase();
+                    return username.includes(searchLower) || name.includes(searchLower);
+                });
+
+                resolve(filtered.slice(0, 10)); // Return max 10 results
+            }).catch((error) => {
+                console.error("Search error:", error);
+                resolve([]);
             })
         })
     })

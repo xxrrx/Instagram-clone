@@ -1,0 +1,79 @@
+=====================================
+   HUONG DAN CAI DAT - MYSOCIAL APP
+=====================================
+
+YEU CAU HE THONG:
+- Node.js phien ban 18 tro len (download: https://nodejs.org/)
+- Git (tuy chon)
+- Expo Go app tren dien thoai (App Store / Google Play)
+
+=====================================
+BUOC 1: CAI DAT FRONTEND (MOBILE APP)
+=====================================
+
+1. Mo Terminal/Command Prompt
+
+2. Di chuyen vao thu muc frontend:
+   cd frontend
+
+3. Cai dat cac thu vien:
+   npm install
+
+4. Chay app:
+   npm start
+   (hoac: npx expo start)
+
+5. Scan ma QR bang Expo Go app tren dien thoai
+
+=====================================
+BUOC 2: CAI DAT BACKEND (TUY CHON)
+=====================================
+
+Chi can thuc hien neu muon deploy Cloud Functions:
+
+1. Cai dat Firebase CLI:
+   npm install -g firebase-tools
+
+2. Dang nhap Firebase:
+   firebase login
+
+3. Di chuyen vao thu muc functions:
+   cd backend/functions
+
+4. Cai dat thu vien:
+   npm install
+
+5. Deploy functions:
+   firebase deploy --only functions
+
+=====================================
+CAC LENH THUONG DUNG
+=====================================
+
+# Chay app development
+cd frontend
+npm start
+
+# Build Android APK
+npx expo build:android
+
+# Build iOS
+npx expo build:ios
+
+=====================================
+LUU Y QUAN TRONG
+=====================================
+
+1. Khong can chay "firebase init" neu da co file cau hinh
+
+2. Dam bao co ket noi internet khi chay app
+
+3. Neu gap loi, thu xoa node_modules va cai lai:
+   rm -rf node_modules
+   npm install
+
+4. Phien ban Node.js khuyen nghi: 18.x hoac 20.x
+
+Neu gap van de, kiem tra:
+- Console log trong terminal
+- Firebase Console: https://console.firebase.google.com
