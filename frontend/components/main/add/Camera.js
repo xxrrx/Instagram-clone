@@ -9,7 +9,10 @@ import React, { useEffect, useRef, useState } from "react";
 import {
     Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View
 } from "react-native";
+import { captureRef } from 'react-native-view-shot';
 import { container, utils } from '../../styles';
+import AROverlay from './AROverlay';
+import ModelSelector from './ModelSelector';
 const WINDOW_HEIGHT = Dimensions.get("window").height;
 const WINDOW_WIDTH = Dimensions.get("window").width;
 const closeButtonSize = Math.floor(WINDOW_HEIGHT * 0.032);
@@ -32,6 +35,12 @@ export default function VideoScreen(props) {
     const [galleryPickedImage, setGalleryPickedImage] = useState(null)
     const cameraRef = useRef();
     const isFocused = useIsFocused();
+
+    // AR Mode states
+    const [isARMode, setIsARMode] = useState(false);
+    const [selectedModel, setSelectedModel] = useState(null);
+    const [showModelSelector, setShowModelSelector] = useState(false);
+    const viewShotRef = useRef();
 
     useEffect(() => {
         (async () => {
@@ -69,13 +78,33 @@ export default function VideoScreen(props) {
         setIsCameraReady(true);
     };
     const takePicture = async () => {
-        if (cameraRef.current) {
-            const options = { quality: 0.5, base64: true, skipProcessing: true };
-            const data = await cameraRef.current.takePictureAsync(options);
-            const source = data.uri;
-            if (source) {
-                props.navigation.navigate('Save', { source, imageSource: null, type })
+        try {
+            if (isARMode && cameraRef.current) {
+                // In AR mode: capture camera image directly
+                // Note: Model 3D is for preview only, we save the camera image
+                const options = { quality: 0.8, base64: true, skipProcessing: false };
+                const data = await cameraRef.current.takePictureAsync(options);
+                const source = data.uri;
+                if (source) {
+                    // Pass AR mode info to Save screen if needed
+                    props.navigation.navigate('Save', {
+                        source,
+                        imageSource: null,
+                        type,
+                        isARCapture: true
+                    });
+                }
+            } else if (cameraRef.current) {
+                // Normal camera capture
+                const options = { quality: 0.5, base64: true, skipProcessing: true };
+                const data = await cameraRef.current.takePictureAsync(options);
+                const source = data.uri;
+                if (source) {
+                    props.navigation.navigate('Save', { source, imageSource: null, type });
+                }
             }
+        } catch (error) {
+            console.error('Error taking picture:', error);
         }
     };
     const recordVideo = async () => {
@@ -149,6 +178,30 @@ export default function VideoScreen(props) {
         })
     }
 
+    // AR Mode functions
+    const toggleARMode = () => {
+        if (!isARMode) {
+            setIsARMode(true);
+            setShowModelSelector(true);
+        } else {
+            setIsARMode(false);
+            setSelectedModel(null);
+            setShowModelSelector(false);
+        }
+    };
+
+    const handleSelectModel = (model) => {
+        setSelectedModel(model);
+        setShowModelSelector(false);
+    };
+
+    const handleCloseModelSelector = () => {
+        setShowModelSelector(false);
+        if (!selectedModel) {
+            setIsARMode(false);
+        }
+    };
+
     const renderCaptureControl = () => (
         <View>
             <View style={{ justifyContent: 'space-evenly', width: '100%', alignItems: 'center', flexDirection: 'row', backgroundColor: 'white' }}>
@@ -172,7 +225,7 @@ export default function VideoScreen(props) {
                         activeOpacity={0.7}
                         disabled={!isCameraReady}
                         onPress={takePicture}
-                        style={styles.capturePicture}
+                        style={[styles.capturePicture, isARMode && styles.captureAR]}
                     />}
 
                 <TouchableOpacity disabled={!isCameraReady} onPress={() => type == 1 ? setType(0) : setType(1)} >
@@ -180,6 +233,19 @@ export default function VideoScreen(props) {
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowGallery(true)} >
                     <Feather style={utils.margin15} name={"image"} size={25} color="black" />
+                </TouchableOpacity>
+                {/* AR Toggle Button */}
+                <TouchableOpacity
+                    disabled={!isCameraReady || type == 0}
+                    onPress={toggleARMode}
+                    style={isARMode ? styles.arButtonActive : null}
+                >
+                    <Feather
+                        style={utils.margin15}
+                        name="box"
+                        size={25}
+                        color={isARMode ? "#00ff88" : (type == 0 ? "#ccc" : "black")}
+                    />
                 </TouchableOpacity>
             </View>
 
@@ -246,7 +312,8 @@ export default function VideoScreen(props) {
         <View style={{ flex: 1, flexDirection: 'column', backgroundColor: 'white' }}>
 
             <View
-
+                ref={viewShotRef}
+                collapsable={false}
                 style={[{ aspectRatio: 1 / 1, height: WINDOW_WIDTH }]}>
                 {isFocused ?
                     <CameraView
@@ -258,6 +325,16 @@ export default function VideoScreen(props) {
                     />
                     : null}
 
+                {/* AR Overlay */}
+                {isARMode && selectedModel && (
+                    <AROverlay
+                        modelSource={selectedModel.source}
+                        modelType={selectedModel.type}
+                        modelId={selectedModel.id}
+                        isVisible={true}
+                        onModelLoaded={(loaded) => console.log('Model loaded:', loaded)}
+                    />
+                )}
             </View>
 
             <View style={[{
@@ -268,8 +345,18 @@ export default function VideoScreen(props) {
                 <View>
                     {renderCaptureControl()}
                 </View>
-
             </View>
+
+            {/* Model Selector - positioned absolute above controls */}
+            {showModelSelector && (
+                <ModelSelector
+                    isVisible={showModelSelector}
+                    onSelectModel={handleSelectModel}
+                    onClose={handleCloseModelSelector}
+                    selectedModelId={selectedModel?.id}
+                />
+            )}
+
         </View>
     );
 }
@@ -343,5 +430,13 @@ const styles = StyleSheet.create({
         width: captureSize,
         borderRadius: Math.floor(captureSize / 2),
         marginHorizontal: 31,
+    },
+    captureAR: {
+        borderColor: '#00ff88',
+        borderWidth: 4,
+    },
+    arButtonActive: {
+        backgroundColor: 'rgba(0, 255, 136, 0.2)',
+        borderRadius: 20,
     },
 });

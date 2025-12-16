@@ -18,29 +18,20 @@ function FollowersList(props) {
 
     const fetchFollowers = async () => {
         try {
-            // Use reverse lookup from 'following' collection to find existing followers
-            // This works for old data before Cloud Functions were deployed
+            // Read directly from the /followers collection maintained by Cloud Functions
             const db = getFirestore();
             const followersList = [];
 
-            // Get all users' following collections
-            const followingSnapshot = await getDocs(collection(db, "following"));
+            // Get followers from /followers/{uid}/userFollowers
+            const followersRef = collection(db, "followers", props.route.params.uid, "userFollowers");
+            const followersSnapshot = await getDocs(followersRef);
 
-            for (const userDoc of followingSnapshot.docs) {
-                const userId = userDoc.id;
-
-                // Check if this user is following the target user
-                const userFollowingRef = collection(db, "following", userId, "userFollowing");
-                const userFollowingSnapshot = await getDocs(userFollowingRef);
-
-                // Check if target uid exists in this user's following list
-                const isFollowing = userFollowingSnapshot.docs.some(doc => doc.id === props.route.params.uid);
-
-                if (isFollowing) {
-                    followersList.push(userId);
-                    props.fetchUsersData(userId, false);
-                }
-            }
+            // Extract follower UIDs and fetch their user data
+            followersSnapshot.docs.forEach(doc => {
+                const followerId = doc.id;
+                followersList.push(followerId);
+                props.fetchUsersData(followerId, false);
+            });
 
             setFollowers(followersList);
             setLoading(false);
@@ -66,12 +57,9 @@ function FollowersList(props) {
         return (
             <View style={[container.container, container.center, { padding: 20 }]}>
                 <FontAwesome5 name="user-friends" size={40} color="gray" style={{ marginBottom: 10 }} />
-                <Text style={[text.notAvailable, { marginBottom: 10 }]}>Followers List</Text>
+                <Text style={[text.notAvailable, { marginBottom: 10 }]}>No Followers Yet</Text>
                 <Text style={[text.grey, text.center, { fontSize: 14 }]}>
-                    This feature requires backend support (Cloud Functions) to efficiently track followers.
-                </Text>
-                <Text style={[text.grey, text.center, { fontSize: 14, marginTop: 10 }]}>
-                    You can view who you're following in the Following tab.
+                    When someone follows this user, they'll appear here.
                 </Text>
             </View>
         );
@@ -88,8 +76,10 @@ function FollowersList(props) {
 
                     return (
                         <TouchableOpacity
-                            style={[container.horizontal, utils.padding10, utils.alignItemsCenter]}
-                            onPress={() => props.navigation.navigate("Profile", { uid: user.uid, username: undefined })}
+                            style={[container.horizontal, utils.padding10, utils.alignItemsCenter]} onPress={() => props.navigation.navigate("Profile", {
+                                uid: user.uid, username: undefined
+                            })}
+
                         >
                             {user.image === 'default' ? (
                                 <FontAwesome5
