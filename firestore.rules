@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Admin function - check if user is admin
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+    }
+    
+    // Users collection
+    match /users/{user} {
+      allow read: if true;
+      
+      // Allow user to update their own profile
+      allow write, update: if request.auth.uid == user;
+      
+      // Allow admin to update any user
+      allow write, update: if isAdmin();
+      
+      // IMPORTANT: Allow Cloud Functions to update ONLY followersCount and followingCount
+      // This is needed for automatic follower count updates
+      allow update: if request.auth != null && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followersCount', 'followingCount']);
+    }
+    
+    // Posts collection
+    match /posts/{user}/userPosts {
+      allow read: if true;
+      allow write: if request.auth.uid == user;
+      allow write, update: if isAdmin();
+    }
+    
+    match /posts/{user}/userPosts/{postId} {
+      allow read: if true;
+      allow write: if request.auth.uid == user;
+      allow write, update: if isAdmin();
+    }
+    
+    // Likes subcollection
+    match /posts/{user}/userPosts/{postId}/likes/{likeId} {
+      allow read: if true;
+      allow write: if request.auth.uid == likeId;
+      allow write, update: if isAdmin();
+    }
+    
+    // Comments subcollection
+    match /posts/{user}/userPosts/{postId}/comments/{commentId} {
+      allow read: if true;
+      allow write: if request.auth.uid != null;
+      allow write, update: if isAdmin();
+    }
+    
+    // Feed collection
+    match /feed/{documents=**} {
+      allow read, write: if request.auth.uid != null;
+    }
+    
+    // Following collection - allow reading parent collection for followers list
+    match /following/{user} {
+      allow read: if request.auth != null;
+    }
+    
+    // Following subcollection
+    match /following/{user}/userFollowing/{following} {
+      allow read: if true;
+      allow write: if user == request.auth.uid;
+    }
+    
+    // Admin collection - locked down
+    match /admin/{documents=**} {
+      allow write, update, read: if false;
+    }
+    
+    // Chats collection
+    match /chats/{chatId} {
+      allow read, update: if request.auth.uid in resource.data.users;
+      allow write: if request.auth.uid != null;
+    }
+    
+    match /chats/{chatId}/messages/{documents=**} {
+      allow read, write: if true;
+    }
+  }
+}
