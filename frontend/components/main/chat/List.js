@@ -16,12 +16,14 @@ import CachedImage from '../random/CachedImage';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 
 
 
 
 function Chat(props) {
+    const { theme, isDarkMode } = useTheme();
     const [chats, setChats] = useState([])
     const [reload, setReload] = useState(false)
     const [input, setInput] = useState("")
@@ -102,14 +104,14 @@ function Chat(props) {
 
     if (chats.length === 0) {
         return (
-            <View style={{ height: '100%', justifyContent: 'center', margin: 'auto' }}>
-                <FontAwesome5 style={{ alignSelf: 'center', marginBottom: 20 }} name="comments" size={40} color="black" />
-                <Text style={[text.notAvailable]}>No chats notAvailable</Text>
+            <View style={{ height: '100%', justifyContent: 'center', margin: 'auto', backgroundColor: theme.background }}>
+                <FontAwesome5 style={{ alignSelf: 'center', marginBottom: 20 }} name="comments" size={40} color={theme.textSecondary} />
+                <Text style={[text.notAvailable, { color: theme.textSecondary }]}>No chats available</Text>
             </View>
         )
     }
     return (
-        <View style={[container.container, container.alignItemsCenter, utils.backgroundWhite]}>
+        <View style={[container.container, container.alignItemsCenter, { backgroundColor: theme.background }]}>
             {item != null ?
                 <View style={{ flexDirection: 'row', padding: 20 }}>
                     <TextInput
@@ -145,11 +147,11 @@ function Chat(props) {
                     keyExtractor={(item, index) => item.id}
                     renderItem={({ item }) => (
 
-                        <View style={!item[getAuth().currentUser.uid] ? { backgroundColor: '#d2eeff' } : null}>
+                        <View style={!item[getAuth().currentUser.uid] ? { backgroundColor: isDarkMode ? '#1a3a4a' : '#d2eeff' } : null}>
                             {item.otherUser == null ? (
                                 <FontAwesome5
                                     style={[utils.profileImageSmall]}
-                                    name="user-circle" size={35} color="black" />
+                                    name="user-circle" size={35} color={theme.textSecondary} />
                             )
                                 :
                                 (
@@ -182,16 +184,16 @@ function Chat(props) {
                                         </View>
 
                                         <View>
-                                            <Text style={[text.bold]}>{item.otherUser.name}</Text>
+                                            <Text style={[text.bold, { color: theme.text }]}>{item.otherUser.name}</Text>
 
-                                            <Text numberOfLines={1} ellipsizeMode='tail' style={[utils.margin15Right, utils.margin5Bottom, { paddingBottom: 10 }]}>
+                                            <Text numberOfLines={1} ellipsizeMode='tail' style={[utils.margin15Right, utils.margin5Bottom, { paddingBottom: 10, color: theme.textSecondary }]}>
                                                 {item.lastMessage} {" "}
                                                 {item.lastMessageTimestamp == null ? (
 
-                                                    <Text style={[text.grey, text.small, utils.margin5Bottom]}>Now</Text>
+                                                    <Text style={[text.grey, text.small, utils.margin5Bottom, { color: theme.textTertiary }]}>Now</Text>
                                                 ) : (
                                                     <Text
-                                                        style={[text.grey, text.small, utils.margin5Bottom]}>
+                                                        style={[text.grey, text.small, utils.margin5Bottom, { color: theme.textTertiary }]}>
                                                         {timeDifference(new Date(), item.lastMessageTimestamp.toDate())}
                                                     </Text>
                                                 )}

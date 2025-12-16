@@ -13,11 +13,13 @@ import CachedImage from '../random/CachedImage';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 
 
 
 function Profile(props) {
+    const { theme, isDarkMode } = useTheme();
     const [userPosts, setUserPosts] = useState([]);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -133,21 +135,35 @@ function Profile(props) {
         )
     }
     const renderHeader = () => (
-        <View>
-            <View style={[container.profileInfo]}>
+        <View style={{ backgroundColor: theme.background }}>
+            <View style={[container.profileInfo, { paddingTop: 30 }]}>
 
                 <View style={[utils.noPadding, container.row]}>
 
                     {user.image == 'default' ?
                         (
-                            <FontAwesome5
-                                style={[utils.profileImageBig, utils.marginBottomSmall]}
-                                name="user-circle" size={80} color="black" />
+                            <View style={{
+                                width: 90,
+                                height: 90,
+                                borderRadius: 45,
+                                backgroundColor: '#9D4EDD',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                marginBottom: 10,
+                                shadowColor: '#9D4EDD',
+                                shadowOffset: { width: 0, height: 6 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 12,
+                                elevation: 8
+                            }}>
+                                <FontAwesome5
+                                    name="user-circle" size={50} color="white" />
+                            </View>
                         )
                         :
                         (
                             <Image
-                                style={[utils.profileImageBig, utils.marginBottomSmall]}
+                                style={[utils.profileImageBig, utils.marginBottomSmall, { width: 90, height: 90, borderRadius: 45 }]}
                                 source={{
                                     uri: user.image
                                 }}
@@ -155,78 +171,115 @@ function Profile(props) {
                         )
                     }
 
-                    <View style={[container.container, container.horizontal, utils.justifyCenter, utils.padding10Sides]}>
+                    <View style={[container.horizontal, { paddingHorizontal: 10, gap: 8, marginTop: 10, flexWrap: 'nowrap' }]}>
 
-                        <View style={[utils.justifyCenter, text.center, container.containerImage]}>
-                            <Text style={[text.bold, text.large, text.center]}>{userPosts.length}</Text>
-                            <Text style={[text.center]}>Posts</Text>
+                        <View style={[utils.cardSmall, {
+                            flex: 1,
+                            backgroundColor: '#FF8C42',
+                            borderRadius: 14,
+                            paddingVertical: 12,
+                            paddingHorizontal: 4,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: 60,
+                            maxWidth: 80
+                        }]}>
+                            <Text style={[text.bold, text.center, { color: '#FFFFFF', fontSize: 20, marginBottom: 2 }]}>{userPosts.length}</Text>
+                            <Text style={[text.center, { color: '#FFFFFF', fontSize: 11, fontWeight: '600' }]} numberOfLines={1}>Posts</Text>
                         </View>
                         <TouchableOpacity
-                            style={[utils.justifyCenter, text.center, container.containerImage]}
+                            style={[utils.cardSmall, {
+                                flex: 1,
+                                backgroundColor: '#9D4EDD',
+                                borderRadius: 14,
+                                paddingVertical: 12,
+                                paddingHorizontal: 4,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minWidth: 60,
+                                maxWidth: 80
+                            }]}
                             onPress={() => props.navigation.navigate("FollowersList", { uid: user.uid })}
                         >
-                            <Text style={[text.bold, text.large, text.center]}>{user.followersCount || 0}</Text>
-                            <Text style={[text.center]}>Followers</Text>
+                            <Text style={[text.bold, text.center, { color: '#FFFFFF', fontSize: 20, marginBottom: 2 }]}>{user.followersCount || 0}</Text>
+                            <Text style={[text.center, { color: '#FFFFFF', fontSize: 11, fontWeight: '600' }]} numberOfLines={1}>Followers</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[utils.justifyCenter, text.center, container.containerImage]}
+                            style={[utils.cardSmall, {
+                                flex: 1,
+                                backgroundColor: '#00D4FF',
+                                borderRadius: 14,
+                                paddingVertical: 12,
+                                paddingHorizontal: 4,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minWidth: 60,
+                                maxWidth: 80
+                            }]}
                             onPress={() => props.navigation.navigate("FollowingList", { uid: user.uid })}
                         >
-                            <Text style={[text.bold, text.large, text.center]}>{user.followingCount || 0}</Text>
-                            <Text style={[text.center]}>Following</Text>
+                            <Text style={[text.bold, text.center, { color: '#FFFFFF', fontSize: 20, marginBottom: 2 }]}>{user.followingCount || 0}</Text>
+                            <Text style={[text.center, { color: '#FFFFFF', fontSize: 11, fontWeight: '600' }]} numberOfLines={1}>Following</Text>
                         </TouchableOpacity>
                     </View>
 
                 </View>
 
 
-                <View>
-                    <Text style={text.bold}>{user.name}</Text>
-                    <Text style={[text.profileDescription, utils.marginBottom]}>{user.description}</Text>
+                <View style={{ marginTop: 15 }}>
+                    <Text style={[text.bold, { fontSize: 18, color: theme.text, marginBottom: 5 }]}>{user.name}</Text>
+                    <Text style={[text.profileDescription, utils.marginBottom, { fontSize: 15, color: theme.textSecondary, lineHeight: 22 }]}>{user.description}</Text>
 
                     {props.route.params.uid !== getAuth().currentUser.uid ? (
-                        <View style={[container.horizontal]}>
+                        <View style={[container.horizontal, { gap: 10 }]}>
                             {following ? (
                                 <TouchableOpacity
-                                    style={[utils.buttonOutlined, container.container, utils.margin15Right]}
+                                    style={[utils.buttonOutlined, container.container, {
+                                        flex: 1,
+                                        marginRight: 0,
+                                        borderRadius: 25,
+                                        paddingVertical: 12
+                                    }]}
                                     title="Following"
                                     onPress={() => onUnfollow()}>
-                                    <Text style={[text.bold, text.center, text.green]}>Following</Text>
+                                    <Text style={[text.bold, text.center, { color: '#06FFA5', fontSize: 15 }]}>Following</Text>
                                 </TouchableOpacity>
                             )
                                 :
                                 (
                                     <TouchableOpacity
-                                        style={[utils.buttonOutlined, container.container, utils.margin15Right]}
+                                        style={[utils.buttonBlue, { flex: 1, marginRight: 0 }]}
                                         title="Follow"
                                         onPress={() => onFollow()}>
-                                        <Text style={[text.bold, text.center, { color: '#2196F3' }]}>Follow</Text>
+                                        <Text style={[text.bold, text.center, { color: '#FFFFFF', fontSize: 15 }]}>Follow</Text>
                                     </TouchableOpacity>
 
-                                )}
+                                )
+
+                            }
 
                             <TouchableOpacity
-                                style={[utils.buttonOutlined, container.container]}
-                                title="Follow"
+                                style={[utils.buttonPurple, { flex: 1 }]}
+                                title="Message"
                                 onPress={() => props.navigation.navigate('Chat', { user })}>
-                                <Text style={[text.bold, text.center]}>Message</Text>
+                                <Text style={[text.bold, text.center, { color: '#FFFFFF', fontSize: 15 }]}>Message</Text>
                             </TouchableOpacity>
                         </View>
                     ) :
                         <TouchableOpacity
-                            style={utils.buttonOutlined}
+                            style={utils.buttonGreen}
                             onPress={() => props.navigation.navigate('Edit')}>
-                            <Text style={[text.bold, text.center]}>Edit Profile</Text>
+                            <Text style={[text.bold, text.center, { color: '#FFFFFF', fontSize: 15 }]}>Edit Profile</Text>
                         </TouchableOpacity>}
                 </View>
             </View>
 
             <View style={[utils.borderTopGray]} />
-        </View>
+        </View >
     );
 
     return (
-        <View style={[container.container, utils.backgroundWhite]}>
+        <View style={[container.container, { backgroundColor: theme.background }]}>
             <FlatList
                 ListHeaderComponent={renderHeader}
                 numColumns={3}
@@ -234,7 +287,13 @@ function Profile(props) {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <TouchableOpacity
-                        style={[container.containerImage, utils.borderWhite]}
+                        style={[container.containerImage, {
+                            borderLeftWidth: 1,
+                            borderRightWidth: 1,
+                            borderTopWidth: 1,
+                            borderColor: '#F5F5F5',
+                            overflow: 'hidden'
+                        }]}
                         onPress={() => props.navigation.navigate("Post", { item, user })}>
 
                         {item.type == 0 ?

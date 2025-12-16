@@ -12,11 +12,13 @@ import ChatListScreen from './main/chat/List';
 import FeedScreen from './main/post/Feed';
 import ProfileScreen from './main/profile/Profile';
 import SearchScreen from './main/profile/Search';
+import { useTheme } from '../contexts/ThemeContext';
 
 
 const Tab = createMaterialBottomTabNavigator();
 
 function Main(props) {
+    const { theme, isDarkMode } = useTheme();
     const [unreadChats, setUnreadChats] = useState(false)
     const [lastNot, setLastNot] = useState(false)
 
@@ -76,7 +78,7 @@ function Main(props) {
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: 'white' }}>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
             <Tab.Navigator initialRouteName="Feed"
 
                 labeled={false}
@@ -85,7 +87,9 @@ function Main(props) {
                         opacity: 0
                     }
                 }}
-                barStyle={{ backgroundColor: '#ffffff' }}>
+                barStyle={{ backgroundColor: theme.card }}
+                activeColor={theme.primary}
+                inactiveColor={theme.textSecondary}>
                 <Tab.Screen key={Date.now()} name="Feed" component={FeedScreen}
                     options={{
                         tabBarIcon: ({ color, size }) => (

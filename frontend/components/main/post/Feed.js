@@ -11,9 +11,11 @@ import Post from './Post'
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 
 function Feed(props) {
+    const { theme, isDarkMode } = useTheme();
     const [posts, setPosts] = useState([]);
     const [refreshing, setRefreshing] = useState(false)
     const [unmutted, setUnmutted] = useState(null)
@@ -52,14 +54,16 @@ function Feed(props) {
 
     if (posts.length == 0) {
         return (
-            <View style={[container.container, container.center, { padding: 20 }]}>
-                <Text style={[text.bold, text.large, { marginBottom: 10 }]}>Welcome to Instagram!</Text>
-                <Text style={[text.grey, text.center]}>
-                    Follow people to see their posts here.
-                </Text>
-                <Text style={[text.grey, text.center, { marginTop: 10 }]}>
-                    Go to Search tab to find people to follow!
-                </Text>
+            <View style={[container.container, container.center, { padding: 30, backgroundColor: theme.background }]}>
+                <View style={[utils.card, { alignItems: 'center', padding: 40, backgroundColor: theme.card }]}>
+                    <Text style={[text.bold, text.large, { marginBottom: 15, fontSize: 24, color: theme.text }]}>Welcome! 🎉</Text>
+                    <Text style={[text.grey, text.center, { fontSize: 16, lineHeight: 24, color: theme.textSecondary }]}>
+                        Follow people to see their posts here.
+                    </Text>
+                    <Text style={[text.center, { marginTop: 15, color: theme.primary, fontSize: 16, fontWeight: '600' }]}>
+                        Go to Search tab to find people! 🔍
+                    </Text>
+                </View>
             </View>
         )
     }
@@ -72,7 +76,7 @@ function Feed(props) {
         }
     }
     return (
-        <View style={[container.container, utils.backgroundWhite]}>
+        <View style={[container.container, { backgroundColor: theme.background }]}>
 
             <FlatList
                 refreshControl={

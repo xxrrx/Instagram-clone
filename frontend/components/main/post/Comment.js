@@ -1,5 +1,5 @@
 import { FontAwesome5 } from '@expo/vector-icons';
-
+import { LinearGradient } from 'expo-linear-gradient';
 
 
 
@@ -13,16 +13,59 @@ import { timeDifference } from '../../utils';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 
 
 
 function Comment(props) {
+    const { theme, isDarkMode } = useTheme();
     const [comments, setComments] = useState([])
     const [postId, setPostId] = useState("")
     const [input, setInput] = useState("")
     const [refresh, setRefresh] = useState(false)
     const [textInput, setTextInput] = useState(null)
+    const postUser = props.route.params.user;
+
+    // Set custom header with post owner info
+    useEffect(() => {
+        if (postUser) {
+            props.navigation.setOptions({
+                headerTitle: () => (
+                    <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center' }}
+                        onPress={() => props.navigation.navigate("ProfileOther", { uid: postUser.uid, username: undefined })}
+                    >
+                        {postUser.image == 'default' ? (
+                            <View style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 18,
+                                backgroundColor: '#9D4EDD',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                marginRight: 10
+                            }}>
+                                <FontAwesome5 name="user-circle" size={20} color="white" />
+                            </View>
+                        ) : (
+                            <Image
+                                style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10 }}
+                                source={{ uri: postUser.image }}
+                            />
+                        )}
+                        <Text style={{ fontSize: 17, fontWeight: '700', color: theme.text }}>
+                            {postUser.name}'s Post
+                        </Text>
+                    </TouchableOpacity>
+                ),
+                headerStyle: {
+                    backgroundColor: theme.card,
+                },
+                headerTintColor: theme.text,
+            });
+        }
+    }, [postUser, theme]);
 
     useEffect(() => {
         getComments();
@@ -87,99 +130,140 @@ function Comment(props) {
     }
 
     return (
-        <View style={[container.container, container.alignItemsCenter, utils.backgroundWhite]}>
-            <FlatList
-                numColumns={1}
-                horizontal={false}
-                data={comments}
-                renderItem={({ item }) => (
-                    <View style={utils.padding10}>
-                        {item.user !== undefined ?
-                            <View style={container.horizontal}>
-                                {item.user.image == 'default' ?
-                                    (
-                                        <FontAwesome5
-                                            style={[utils.profileImageSmall]}
-                                            name="user-circle" size={35} color="black"
-                                            onPress={() => props.navigation.navigate("Profile", { uid: item.user.uid, username: undefined })} />
+        <LinearGradient
+            colors={isDarkMode ? ['#1A1A1A', '#000000'] : ['#FAFAFA', '#FFFFFF']}
+            style={{ flex: 1 }}
+        >
+            <View style={[container.container, container.alignItemsCenter, { backgroundColor: 'transparent' }]}>
+                <FlatList
+                    numColumns={1}
+                    horizontal={false}
+                    data={comments}
+                    contentContainerStyle={{ paddingVertical: 10 }}
+                    renderItem={({ item }) => (
+                        <View style={[utils.cardSmall, { marginHorizontal: 12, backgroundColor: theme.card }]}>
+                            {item.user !== undefined ?
+                                <View style={container.horizontal}>
+                                    <TouchableOpacity onPress={() => props.navigation.navigate("Profile", { uid: item.user.uid, username: undefined })}>
+                                        {item.user.image == 'default' ?
+                                            (
+                                                <FontAwesome5
+                                                    style={[utils.profileImageSmall]}
+                                                    name="user-circle" size={35} color="#9D4EDD" />
 
 
-                                    )
-                                    :
-                                    (
-                                        <Image
-                                            style={[utils.profileImageSmall]}
-                                            source={{
-                                                uri: item.user.image
-                                            }}
-                                            onPress={() => props.navigation.navigate("Profile", { uid: item.user.uid, username: undefined })} />
+                                            )
+                                            :
+                                            (
+                                                <Image
+                                                    style={[utils.profileImageSmall]}
+                                                    source={{
+                                                        uri: item.user.image
+                                                    }} />
 
-                                    )
-                                }
-                                <View style={{ marginRight: 30 }}>
-                                    <Text style={[utils.margin15Right, utils.margin5Bottom, { flexWrap: 'wrap' }]}>
+                                            )
+                                        }
+                                    </TouchableOpacity>
+                                    <View style={{ marginRight: 30, flex: 1 }}>
+                                        <Text style={[utils.margin15Right, utils.margin5Bottom, { flexWrap: 'wrap', lineHeight: 20 }]}>
 
-                                        <Text style={[text.bold]}
-                                            onPress={() => props.navigation.navigate("Profile", { uid: item.user.uid, username: undefined })}>
-                                            {item.user.name}
+                                            <Text style={[text.bold, { fontSize: 15, color: theme.text }]}
+                                                onPress={() => props.navigation.navigate("Profile", { uid: item.user.uid, username: undefined })}>
+                                                {item.user.name}
+                                            </Text>
+                                            <Text style={{ fontSize: 15, color: theme.text }}>{" "}  {item.text}</Text>
                                         </Text>
-                                        {" "}  {item.text}
-                                    </Text>
-                                    <Text
-                                        style={[text.grey, text.small, utils.margin5Bottom]}>
-                                        {timeDifference(new Date(), item.creation.toDate())}
-                                    </Text>
+                                        <Text
+                                            style={[text.grey, text.small, utils.margin5Bottom, { fontSize: 12, color: theme.textSecondary }]}>
+                                            {timeDifference(new Date(), item.creation.toDate())}
+                                        </Text>
+                                    </View>
+
+
                                 </View>
+                                : null}
 
 
-                            </View>
-                            : null}
+                        </View>
+                    )}
+                />
+                <View style={[utils.borderTopGray, {
+                    backgroundColor: theme.card,
+                    paddingHorizontal: 15,
+                    paddingVertical: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -2 },
+                    shadowOpacity: theme.shadowOpacity,
+                    shadowRadius: 8,
+                    elevation: 10,
+                    borderTopColor: theme.border
+                }]}>
+                    <View style={[container.horizontal, utils.alignItemsCenter, { gap: 10 }]}>
+                        {
+                            props.currentUser.image == 'default' ?
+                                (
+                                    <FontAwesome5
+                                        style={[utils.profileImageSmall, { marginRight: 0 }]}
+                                        name="user-circle" size={35} color="#9D4EDD" />
 
+                                )
+                                :
+                                (
+                                    <Image
+                                        style={[utils.profileImageSmall, { marginRight: 0 }]}
+                                        source={{
+                                            uri: props.currentUser.image
+                                        }}
+                                    />
+                                )
+                        }
 
-                    </View>
-                )
-                }
-            />
-            <View style={[utils.borderTopGray]}>
-                < View style={[container.horizontal, utils.padding10, utils.alignItemsCenter, utils.backgroundWhite]} >
-                    {
-                        props.currentUser.image == 'default' ?
-                            (
-                                <FontAwesome5
-                                    style={[utils.profileImageSmall]}
-                                    name="user-circle" size={35} color="black" />
+                        <View style={{
+                            flex: 1,
+                            backgroundColor: theme.inputBackground,
+                            borderRadius: 20,
+                            paddingHorizontal: 15,
+                            paddingVertical: 8,
+                            minHeight: 40,
+                            justifyContent: 'center'
+                        }}>
+                            <TextInput
+                                ref={input => { setTextInput(input) }}
+                                value={input}
+                                multiline={true}
+                                style={{
+                                    fontSize: 15,
+                                    color: theme.inputText,
+                                    maxHeight: 100
+                                }}
+                                placeholder='Add a comment...'
+                                placeholderTextColor={theme.inputPlaceholder}
+                                onChangeText={(input) => setInput(input)}
+                            />
+                        </View>
 
-                            )
-                            :
-                            (
-                                <Image
-                                    style={[utils.profileImageSmall]}
-                                    source={{
-                                        uri: props.currentUser.image
-                                    }}
-                                />
-                            )
-                    }
-                    <View style={[container.horizontal, utils.justifyCenter, utils.alignItemsCenter]}>
-                        < TextInput
-                            ref={input => { setTextInput(input) }}
-                            value={input}
-                            multiline={true}
-                            style={[container.fillHorizontal, container.input, container.container]}
-                            placeholder='comment...'
-                            onChangeText={(input) => setInput(input)} />
-
-                        < TouchableOpacity
+                        <TouchableOpacity
                             onPress={() => onCommentSend()}
-                            style={{ width: 100, alignSelf: 'center' }}>
-                            <Text style={[text.bold, text.medium, text.deepskyblue]} >Post</Text>
-                        </TouchableOpacity >
+                            style={{
+                                backgroundColor: theme.secondary,
+                                paddingHorizontal: 20,
+                                paddingVertical: 12,
+                                borderRadius: 20,
+                                shadowColor: theme.secondary,
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.4,
+                                shadowRadius: 8,
+                                elevation: 6,
+                                minWidth: 70,
+                                alignItems: 'center'
+                            }}
+                        >
+                            <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '700' }}>Post</Text>
+                        </TouchableOpacity>
                     </View>
-
-                </View >
+                </View>
             </View>
-
-        </View >
+        </LinearGradient>
     )
 }
 

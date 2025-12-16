@@ -1,9 +1,10 @@
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Snackbar } from 'react-native-paper';
-import { container, form } from '../styles';
+import { container, form, text, utils, colors } from '../styles';
 
 export default function Register(props) {
     const [email, setEmail] = useState('');
@@ -56,43 +57,92 @@ export default function Register(props) {
     }
 
     return (
-        <View style={container.center}>
+        <LinearGradient
+            colors={['#9D4EDD', '#FF1493', '#FFD700']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[container.center]}
+        >
             <View style={container.formCenter}>
-                <TextInput
-                    style={form.textInput}
-                    placeholder="Username"
-                    value={username}
-                    keyboardType="twitter"
-                    onChangeText={(username) => setUsername(username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '').replace(/[^a-z0-9]/gi, ''))}
-                />
-                <TextInput
-                    style={form.textInput}
-                    placeholder="name"
-                    onChangeText={(name) => setName(name)}
-                />
-                <TextInput
-                    style={form.textInput}
-                    placeholder="email"
-                    onChangeText={(email) => setEmail(email)}
-                />
-                <TextInput
-                    style={form.textInput}
-                    placeholder="password"
-                    secureTextEntry={true}
-                    onChangeText={(password) => setPassword(password)}
-                />
+                <View style={[utils.card, { padding: 30 }]}>
+                    <Text style={[text.bold, { fontSize: 28, color: '#2D2D2D', marginBottom: 10, textAlign: 'center' }]}>Create Account 🎉</Text>
+                    <Text style={[text.grey, { fontSize: 15, marginBottom: 30, textAlign: 'center', color: '#757575' }]}>Join us today!</Text>
+                    
+                    <TextInput
+                        style={[form.textInput, { 
+                            backgroundColor: '#F5F5F5',
+                            borderColor: '#E0E0E0',
+                            borderRadius: 12,
+                            fontSize: 15,
+                            paddingHorizontal: 15,
+                            paddingVertical: 12
+                        }]}
+                        placeholder="Username"
+                        placeholderTextColor="#9E9E9E"
+                        value={username}
+                        keyboardType="twitter"
+                        autoCapitalize="none"
+                        onChangeText={(username) => setUsername(username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '').replace(/[^a-z0-9]/gi, ''))}
+                    />
+                    <TextInput
+                        style={[form.textInput, { 
+                            backgroundColor: '#F5F5F5',
+                            borderColor: '#E0E0E0',
+                            borderRadius: 12,
+                            fontSize: 15,
+                            paddingHorizontal: 15,
+                            paddingVertical: 12
+                        }]}
+                        placeholder="Name"
+                        placeholderTextColor="#9E9E9E"
+                        onChangeText={(name) => setName(name)}
+                    />
+                    <TextInput
+                        style={[form.textInput, { 
+                            backgroundColor: '#F5F5F5',
+                            borderColor: '#E0E0E0',
+                            borderRadius: 12,
+                            fontSize: 15,
+                            paddingHorizontal: 15,
+                            paddingVertical: 12
+                        }]}
+                        placeholder="Email"
+                        placeholderTextColor="#9E9E9E"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        onChangeText={(email) => setEmail(email)}
+                    />
+                    <TextInput
+                        style={[form.textInput, { 
+                            backgroundColor: '#F5F5F5',
+                            borderColor: '#E0E0E0',
+                            borderRadius: 12,
+                            fontSize: 15,
+                            paddingHorizontal: 15,
+                            paddingVertical: 12
+                        }]}
+                        placeholder="Password"
+                        placeholderTextColor="#9E9E9E"
+                        secureTextEntry={true}
+                        onChangeText={(password) => setPassword(password)}
+                    />
 
-                <Button
-                    style={form.button}
-                    onPress={() => onRegister()}
-                    title="Register"
-                />
+                    <TouchableOpacity
+                        style={[utils.buttonPurple, { marginTop: 10 }]}
+                        onPress={() => onRegister()}>
+                        <Text style={[text.bold, text.center, { color: '#FFFFFF', fontSize: 16 }]}>Create Account</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
-            <View style={form.bottomButton} >
-                <Text
-                    onPress={() => props.navigation.navigate("Login")} >
-                    Already have an account? SignIn.
+            <View style={[form.bottomButton, { borderTopWidth: 0, paddingTop: 20 }]} >
+                <Text style={{ fontSize: 15, color: '#FFFFFF', textAlign: 'center' }}>
+                    Already have an account?{' '}
+                    <Text
+                        style={{ color: '#FFFFFF', fontWeight: '700', textDecorationLine: 'underline' }}
+                        onPress={() => props.navigation.navigate("Login")} >
+                        Sign In
+                    </Text>
                 </Text>
             </View>
             <Snackbar
@@ -101,7 +151,7 @@ export default function Register(props) {
                 onDismiss={() => { setIsValid({ boolSnack: false }) }}>
                 {isValid.message}
             </Snackbar>
-        </View>
+        </LinearGradient>
 
     )
 }

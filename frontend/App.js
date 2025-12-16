@@ -25,6 +25,8 @@ import FollowersListScreen from './components/main/profile/FollowersList';
 import FollowingListScreen from './components/main/profile/FollowingList';
 import { container } from './components/styles';
 import rootReducer from './redux/reducers';
+import { ThemeProvider } from './contexts/ThemeContext';
+import AppNavigator from './components/AppNavigator';
 
 const store = createStore(rootReducer, applyMiddleware(thunk))
 
@@ -119,67 +121,23 @@ export class App extends Component {
 
     if (!loggedIn) {
       return (
-        <NavigationContainer>
-          <Stack.Navigator initialRouteName="Login">
-            <Stack.Screen name="Register" component={RegisterScreen} navigation={this.props.navigation} options={{ headerShown: false }} />
-            <Stack.Screen name="Login" navigation={this.props.navigation} component={LoginScreen} options={{ headerShown: false }} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <ThemeProvider>
+          <NavigationContainer>
+            <Stack.Navigator initialRouteName="Login">
+              <Stack.Screen name="Register" component={RegisterScreen} navigation={this.props.navigation} options={{ headerShown: false }} />
+              <Stack.Screen name="Login" navigation={this.props.navigation} component={LoginScreen} options={{ headerShown: false }} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </ThemeProvider>
       );
     }
 
     return (
-      <Provider store={store}>
-        <NavigationContainer >
-          <Stack.Navigator initialRouteName="Main">
-            <Stack.Screen key={Date.now()} name="Main" component={MainScreen} navigation={this.props.navigation} options={({ route }) => {
-              const routeName = getFocusedRouteNameFromRoute(route) ?? 'Feed';
-
-              switch (routeName) {
-                case 'Camera': {
-                  return {
-                    headerTitle: 'Camera',
-                  };
-                }
-                case 'chat': {
-                  return {
-                    headerTitle: 'Chat',
-                  };
-                }
-                case 'Profile': {
-                  return {
-                    headerTitle: 'Profile',
-                  };
-                }
-                case 'Search': {
-                  return {
-                    headerTitle: 'Search',
-                  };
-                }
-                case 'Feed':
-                default: {
-                  return {
-                    headerTitle: 'Instagram',
-                  };
-                }
-              }
-            }}
-            />
-            <Stack.Screen key={Date.now()} name="Save" component={SaveScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="video" component={SaveScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="Post" component={PostScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="Chat" component={ChatScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="ChatList" component={ChatListScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="Edit" component={EditScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="Profile" component={ProfileScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="Comment" component={CommentScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="ProfileOther" component={ProfileScreen} navigation={this.props.navigation} />
-            <Stack.Screen key={Date.now()} name="Blocked" component={BlockedScreen} navigation={this.props.navigation} options={{ headerShown: false }} />
-            <Stack.Screen key={Date.now()} name="FollowersList" component={FollowersListScreen} navigation={this.props.navigation} options={{ headerTitle: 'Followers' }} />
-            <Stack.Screen key={Date.now()} name="FollowingList" component={FollowingListScreen} navigation={this.props.navigation} options={{ headerTitle: 'Following' }} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </Provider>
+      <ThemeProvider>
+        <Provider store={store}>
+          <AppNavigator />
+        </Provider>
+      </ThemeProvider>
     )
   }
 }
